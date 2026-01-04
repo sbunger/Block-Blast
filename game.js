@@ -11,8 +11,8 @@ let gridHeight = 10;
 
 const totalBlocks = 3;
 
-const blockPadding = 5;
-const blockSize = 20;
+const blockPadding = 3;
+const blockSize = 30;
 
 const blocks = [];
 const availableBlocks = [];
@@ -24,11 +24,21 @@ let offsetY = 0;
 let x = canvas.width / 2;
 let y = canvas.height - 30;
 
+
+function getRandomHexColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
 function generateBlocks() {
     for (let c = 0; c < gridWidth; c++) {
         blocks[c] = [];
         for (let r = 0; r < gridHeight; r++) {
-            blocks[c][r] = { x: 0, y: 0, block: false };
+            blocks[c][r] = { x: 0, y: 0, color: "#bbbbbb", placed: false};
 
             const blockX = (canvasX - gridWidth * (blockPadding + blockSize)) / 2 + (c * (blockSize + blockPadding));
             const blockY = (canvasX - gridHeight * (blockPadding + blockSize)) / 2 + (r * (blockSize + blockPadding));
@@ -44,7 +54,7 @@ generateBlocks();
 function createAvailableBlocks() {
     if (availableBlocks.length === 0) {
         for (let b = 0; b < totalBlocks; b++) {
-            availableBlocks[b] = { x: 0, y: 0, active: true };
+            availableBlocks[b] = { x: 0, y: 0, active: true, color: "#000000" };
 
             const blockX = (canvasX - 3 * (150 + blockSize)) / 2 + b * (150 + blockSize) + 75;
             const blockY = canvasY - 100;
@@ -52,17 +62,30 @@ function createAvailableBlocks() {
             availableBlocks[b].x = blockX;
             availableBlocks[b].y = blockY;
         }
-    } 
+    } else {
+        for (let b = 0; b < totalBlocks; b++) {
+            if (!availableBlocks[b].active) {
+                availableBlocks[b] = { x: 0, y: 0, active: true, color: getRandomHexColor() };
+
+                const blockX = (canvasX - 3 * (150 + blockSize)) / 2 + b * (150 + blockSize) + 75;
+                const blockY = canvasY - 100;
+
+                availableBlocks[b].x = blockX;
+                availableBlocks[b].y = blockY;
+            }
+        }
+    }
 }
 
-createAvailableBlocks()
+
+
 
 
 function drawAvailableBlocks() {
     for (let b = 0; b < totalBlocks; b++) {
         ctx.beginPath();
             ctx.rect(availableBlocks[b].x, availableBlocks[b].y, blockSize, blockSize);
-            ctx.fillStyle = "#000000";
+            ctx.fillStyle = availableBlocks[b].color;
             ctx.fill();
             ctx.closePath();
     }
@@ -74,11 +97,7 @@ function drawGrid() {
             ctx.beginPath();
             ctx.rect(blocks[c][r].x, blocks[c][r].y, blockSize, blockSize);
 
-            if (blocks[c][r].block == false) {
-                ctx.fillStyle = "#9d9d9dff";
-            } else {
-                ctx.fillStyle = "#0095DD";
-            }
+            ctx.fillStyle = blocks[c][r].color;
 
             ctx.fill();
             ctx.closePath();
@@ -89,6 +108,8 @@ function drawGrid() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    createAvailableBlocks()
+
     drawGrid();
     drawAvailableBlocks();
 }
@@ -96,15 +117,35 @@ function draw() {
 setInterval(draw, 10);
 
 
-function blockCollision(mouseX, mouseY, block) {
+
+
+function blockCollision(x, y, block) {
 
     return (
-        mouseX >= block.x &&
-        mouseX <= block.x + blockSize &&
-        mouseY >= block.y &&
-        mouseY <= block.y + blockSize
+        x >= block.x &&
+        x <= block.x + blockSize &&
+        y >= block.y &&
+        y <= block.y + blockSize
     )
 
+}
+
+function getGridLocation(x, y) {
+    for (let c = 0; c < gridWidth; c++) {
+        for (let r = 0; r < gridHeight; r++) {
+            const block = blocks[c][r]
+
+            if (
+                x >= block.x &&
+                x <= block.x + blockSize &&
+                y >= block.y &&
+                y <= block.y + blockSize
+            ) {
+                return block;
+            } 
+        }
+    }
+    return null;
 }
 
 function getPos(event) {
@@ -119,8 +160,25 @@ function getPos(event) {
 }
 
 function stopDrag() {
-    activeBlock = null;
+    if (!activeBlock) return;
+
+    const snap = getGridLocation(activeBlock.x + blockSize / 2, activeBlock.y + blockSize / 2)
+
+    if (snap === null) {
+        activeBlock = null;
+        return;
+    } else {
+        snap.color = activeBlock.color;
+        snap.placed = true;
+
+        activeBlock.active = false;
+        activeBlock = null;
+    }
+
 }
+
+
+
 
 canvas.addEventListener("pointerdown", (event) => {
     const pos = getPos(event);
@@ -146,11 +204,3 @@ canvas.addEventListener("pointermove", (event) => {
 canvas.addEventListener("pointerup", stopDrag);
 
 canvas.addEventListener("pointerleave", stopDrag);
-
-// test grid sizes
-//slider.addEventListener("input", () => {
-//  const value = slider.value;
-//  gridWidth = value;
-//  gridHeight = value;
-//  generateBlocks()
-//});
