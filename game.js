@@ -322,6 +322,8 @@ function stopDrag() {
             activeBlock.active = false;
         }
     }
+    
+    activeBlock = null;
 
     console.log("success");
 }
