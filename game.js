@@ -5,8 +5,8 @@ const ctx = canvas.getContext("2d");
 const canvasX = canvas.width;
 const canvasY = canvas.height;
 
-let gridWidth = 4;
-let gridHeight = 4;
+let gridWidth = 5;
+let gridHeight = 5;
 
 const defaultColor = "#ffffff";
 const backgroundColor = "#f1f1ee";
@@ -14,12 +14,12 @@ const backgroundColor = "#f1f1ee";
 const totalBlocks = 3;
 
 const blockPadding = 6;
-const blockSize = 40;
+const blockSize = 35;
 
 const gridPadding = 20;
 
 const blockSpacing = 190;
-const blockY = 100;
+const blockY = 90;
 
 const blocks = [];
 const availableBlocks = [];
@@ -29,13 +29,26 @@ let offsetX = 0;
 let offsetY = 0;
 
 let score = 0;
+let combo = 0;
+
+const clearTime = 8;
 
 let inPlay = true;
 
 // define all possible blocks
 const shapes = [
+    [
+        [1]
+    ],
 
-    [[1, 1]],
+    [
+        [1, 1]
+    ],
+
+    [
+        [1],
+        [1]
+    ],
 
     [
         [1, 0],
@@ -43,7 +56,17 @@ const shapes = [
     ],
 
     [
-        [1, ],
+        [1, 1],
+        [1, 0]
+    ],
+
+    [
+        [0, 1],
+        [1, 0]
+    ],
+
+    [
+        [1, 1],
         [1, 1]
     ],
 
@@ -51,6 +74,25 @@ const shapes = [
         [1],
         [1],
         [1],
+    ],
+
+    [
+        [1, 1],
+        [1, 1],
+        [1, 1],
+    ],
+
+    [
+        [1],
+        [1],
+        [1],
+        [1]
+    ],
+
+    [
+        [1, 1, 1],
+        [0, 1, 0],
+        [0, 1, 0]
     ],
 
     [
@@ -88,14 +130,24 @@ function getRandomColor() {
 
 
 function updateScore(r, c) {
-    score = score + r.length + c.length;
+    const linesScored = r.length + c.length;
+    if (linesScored === 0) {
+        combo = 0;
+        return;
+    }
+
+    combo += linesScored;
+
+    const basePoints = 100;
+
+    score += linesScored * (basePoints * combo);
 }
 
 function generateBlocks() {
     for (let c = 0; c < gridWidth; c++) {
         blocks[c] = [];
         for (let r = 0; r < gridHeight; r++) {
-            blocks[c][r] = { x: 0, y: 0, color: defaultColor, placed: false};
+            blocks[c][r] = { x: 0, y: 0, color: defaultColor, placed: false, clearing: false, gridTimer: 0};
 
             const blockX = (canvasX - gridWidth * (blockPadding + blockSize)) / 2 + (c * (blockSize + blockPadding));
             const blockY = (canvasY - gridHeight * (blockPadding + blockSize)) / 2 + (r * (blockSize + blockPadding));
@@ -148,11 +200,29 @@ function resetBlockPos() {
     }
 }
 
+function updateClears() {
+    for (let c = 0; c < gridWidth; c++) {
+        for (let r = 0; r < gridHeight; r++) {
+            const block = blocks[c][r];
+
+            if (!block.clearing) continue;
+
+            block.gridTimer -= 1;
+
+            if (block.gridTimer <= 0) {
+                block.clearing = false;
+                block.placed = false;
+                block.color = defaultColor;
+            }
+        }
+    }
+}
+
 function clearRow(r) {
     for (let i = 0; i < r.length; i++) {
         for (let c = 0; c < gridWidth; c++){
-            blocks[c][r[i]].placed = false;
-            blocks[c][r[i]].color = defaultColor;
+            blocks[c][r[i]].clearing = true;
+            blocks[c][r[i]].gridTimer = clearTime; // frames
         }
     }
 }
@@ -160,8 +230,8 @@ function clearRow(r) {
 function clearColumn(c) {
     for (let i = 0; i < c.length; i++) {
         for (let r = 0; r < gridHeight; r++){
-            blocks[c[i]][r].placed = false;
-            blocks[c[i]][r].color = defaultColor;
+            blocks[c[i]][r].clearing = true;
+            blocks[c[i]][r].gridTimer = clearTime; // frames
         }
     }
 }
@@ -227,7 +297,7 @@ function canPlace(block, startCol, startRow) {
 function gameCheck() {
     let spotOpen = 0;
 
-    for (b = 0; b < availableBlocks.length; b++) {
+    for (let b = 0; b < availableBlocks.length; b++) {
 
         for (r = 0; r < gridHeight; r++) {
             for (c = 0; c < gridWidth; c++) {
@@ -291,13 +361,19 @@ function drawAvailableBlocks() {
 }
 
 function drawScore() {
-    ctx.font = "bold italic 25px Arial";
+    ctx.font = "bold 25px Arial";
 
     ctx.textAlign = "left"; 
     ctx.textBaseline = "alphabetic";
 
     ctx.fillStyle = "#3d405b";
     ctx.fillText(`Score: ${score}`, 40, 60);
+
+    if (combo > 0) {
+        ctx.fillStyle = "#74789aff";
+        ctx.textAlign = "right";
+        ctx.fillText(`Combo: ${combo}`, canvasX - 40, 60);
+    }
 }
 
 function drawGrid() {
@@ -311,21 +387,42 @@ function drawGrid() {
 
     for (let c = 0; c < gridWidth; c++) {
         for (let r = 0; r < gridHeight; r++) {
+            if (!blocks[c][r].clearing) {
+                drawBlock(blocks[c][r].x, blocks[c][r].y, blockSize, blockSize, 5, blocks[c][r].color);
+            } else {
+                let t = blocks[c][r].gridTimer / clearTime;
 
-            drawBlock(blocks[c][r].x, blocks[c][r].y, blockSize, blockSize, 5, blocks[c][r].color);
+                const multiplier = t * 0.25 + 0.75;
+                const newSize = multiplier * blockSize;
+                
+                ctx.globalAlpha = t;
+                drawBlock(blocks[c][r].x + (blockSize - newSize) / 2, blocks[c][r].y + (blockSize - newSize) / 2, newSize, newSize, 5, blocks[c][r].color);
+
+                ctx.globalAlpha = 1;
+            }
         }
     }
 }
 
 function drawGameOver() {
 
-    const overWidth = 200;
-    const overHeight = 35;
+    const overWidth = 180;
+    const overHeight = 45;
+
+    ctx.shadowColor = backgroundColor;
+    ctx.shadowBlur = 12;
 
     ctx.beginPath();
-    ctx.roundRect((canvasX - overWidth) / 2 , (canvasY - overHeight) / 2, overWidth, overHeight, r);
+    ctx.roundRect((canvasX - overWidth) / 2 , 120 - overHeight / 2, overWidth, overHeight, 5);
     ctx.fillStyle = backgroundColor;
     ctx.fill();
+
+    ctx.shadowColor = "transparent";
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+    
     ctx.closePath();
 
     ctx.font = "bold italic 25px Arial";
@@ -333,7 +430,7 @@ function drawGameOver() {
 
     ctx.textBaseline = "middle"; 
     ctx.textAlign = "center"; 
-    ctx.fillText(`Game Over!`, canvasX / 2, canvasY / 2);
+    ctx.fillText(`Game Over!`, canvasX / 2, 120);
 }
 
 
@@ -342,9 +439,9 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (inPlay) {
-        checkRows();
         createAvailableBlocks();
     }
+    updateClears();
 
     drawGrid();
     drawAvailableBlocks();
@@ -357,7 +454,7 @@ function draw() {
     }
 }
 
-setInterval(draw, 10);
+setInterval(draw, 16);
 
 
 
@@ -449,10 +546,13 @@ function stopDrag() {
     
     activeBlock = null;
 
+    checkRows();
+
     console.log("success");
 }
 
 canvas.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
     const pos = getPos(event);
     
     for (let b = 0; b < totalBlocks; b++) {
