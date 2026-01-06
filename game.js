@@ -2,19 +2,24 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 
-canvasX = canvas.width;
-canvasY = canvas.height;
+const canvasX = canvas.width;
+const canvasY = canvas.height;
 
-let gridWidth = 5;
+let gridWidth = 7;
 let gridHeight = 5;
 
-const defaultColor = "#f4f1de";
+const defaultColor = "#ffffff";
+const backgroundColor = "#f1f1ee";
 
 const totalBlocks = 3;
 
-const blockPadding = 4;
+const blockPadding = 6;
 const blockSize = 40;
-const blockSpacing = 130;
+
+const gridPadding = 20;
+
+const blockSpacing = 150;
+const blockY = 100;
 
 const blocks = [];
 const availableBlocks = [];
@@ -42,24 +47,39 @@ const shapes = [
     [
         [1],
         [1],
-        [1]
+        [1],
+    ],
+
+    [
+        [1, 0],
+        [1, 1],
+        [1, 0]
+    ],
+
+    [
+        [1, 1],
+        [0, 1],
+        [1, 1]
+    ],
+
+    [
+        [1, 1, 1]
     ]
 ]
 
 
 
 function getRandomColor() {
-    const colors = ["#e07a5f", "#3d405b", "#81b29a", "#f2cc8f"];
+    const colors = ["#ff9aa2", "#fff1a8", "#b5ead7", "#b8c0ff"];
     return colors[Math.floor(Math.random() * colors.length)]
 }
+
 
 
 
 function updateScore(r, c) {
     score = score + r.length + c.length;
 }
-
-
 
 function generateBlocks() {
     for (let c = 0; c < gridWidth; c++) {
@@ -68,7 +88,7 @@ function generateBlocks() {
             blocks[c][r] = { x: 0, y: 0, color: defaultColor, placed: false};
 
             const blockX = (canvasX - gridWidth * (blockPadding + blockSize)) / 2 + (c * (blockSize + blockPadding));
-            const blockY = (canvasX - gridHeight * (blockPadding + blockSize)) / 2 + (r * (blockSize + blockPadding));
+            const blockY = (canvasY - gridHeight * (blockPadding + blockSize)) / 2 + (r * (blockSize + blockPadding));
 
             blocks[c][r].x = blockX;
             blocks[c][r].y = blockY;
@@ -78,44 +98,43 @@ function generateBlocks() {
 
 generateBlocks();
 
+function getBlockSize(shape) {
+    return {
+        width: shape[0].length * (blockSize + blockPadding) - blockPadding,
+        height: shape.length * (blockSize + blockPadding) - blockPadding
+    };
+}
+
 function createAvailableBlocks() {
-    if (availableBlocks.length === 0) {
-        //init
+    // creates availible blocks when used / gone (init)
 
-        for (let b = 0; b < totalBlocks; b++) {
-            availableBlocks[b] = { x: 0, y: 0, active: true, color: getRandomColor(), shape: shapes[Math.floor(Math.random() * shapes.length)] };
+    for (let b = 0; b < totalBlocks; b++) {
+        if (!availableBlocks[b] || availableBlocks[b].active === false) {
             
+            const shape = shapes[Math.floor(Math.random() * shapes.length)];
+            const block = getBlockSize(shape);
 
-            const blockX = (canvasX - 3 * (150 + blockSize)) / 2 + b * (150 + blockSize) + 75;
-            const blockY = canvasY - 150;
-
-            availableBlocks[b].x = blockX;
-            availableBlocks[b].y = blockY;
+            availableBlocks[b] = {
+                x: (canvasX / 2) - (b - 1) * blockSpacing - block.width / 2, // 'center' horizontally
+                y: canvasY - blockY - block.height / 2, // center vertically
+                active: true,
+                color: getRandomColor(),
+                shape: shape
+            };
+            
         }
-    } else {
-        //active when block is used
-        for (let b = 0; b < totalBlocks; b++) {
-            if (!availableBlocks[b].active) {
-                availableBlocks[b] = { x: 0, y: 0, active: true, color: getRandomColor(), shape: shapes[Math.floor(Math.random() * shapes.length)] };
 
-                const blockX = (canvasX - 3 * (150 + blockSize)) / 2 + b * (150 + blockSize) + 75;
-                const blockY = canvasY - 150;
-
-                availableBlocks[b].x = blockX;
-                availableBlocks[b].y = blockY;
-            }
-        }
     }
 }
 
 function resetBlockPos() {
     //active when block is let go outside of game area
     for (let b = 0; b < totalBlocks; b++) {
-        const blockX = (canvasX - 3 * (150 + blockSize)) / 2 + b * (150 + blockSize) + 75;
-        const blockY = canvasY - 150;
 
-        availableBlocks[b].x = blockX;
-        availableBlocks[b].y = blockY;
+        const block = getBlockSize(availableBlocks[b].shape);
+
+        availableBlocks[b].x = (canvasX / 2) - (b - 1) * blockSpacing - block.width / 2;
+        availableBlocks[b].y = canvasY - blockY - block.height / 2;
     }
 }
 
@@ -178,7 +197,32 @@ function checkRows() {
 
 
 
+
+
 // actual drawing
+
+function drawBlock(x, y, h, w, r, color) {
+
+    if (!(color == defaultColor)) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+    }
+    
+    ctx.beginPath();
+    ctx.roundRect(x, y, h, w, r);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    
+    if (!(color == defaultColor)) {
+        ctx.shadowColor = "transparent";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+    }
+
+    ctx.closePath();
+}
 
 function drawAvailableBlocks() {
     for (let b = 0; b < totalBlocks; b++) {
@@ -190,11 +234,7 @@ function drawAvailableBlocks() {
                     const x = (block.x + c * (blockSize + blockPadding));
                     const y = (block.y + r * (blockSize + blockPadding));
 
-                    ctx.beginPath();
-                    ctx.roundRect(x, y, blockSize, blockSize, 5);
-                    ctx.fillStyle = block.color;
-                    ctx.fill();
-                    ctx.closePath();
+                    drawBlock(x, y, blockSize, blockSize, 5, block.color)
                 }
             }
         }
@@ -208,15 +248,18 @@ function drawScore() {
 }
 
 function drawGrid() {
+
+    // BG
+    ctx.beginPath();
+    ctx.roundRect((canvasX - (gridWidth * (blockSize + blockPadding)) - gridPadding) / 2, (canvasY - (gridHeight * (blockSize + blockPadding)) - gridPadding) / 2, (gridWidth * (blockSize + blockPadding) - blockPadding) + gridPadding, (gridHeight * (blockSize + blockPadding) - blockPadding) + gridPadding, 8);
+    ctx.fillStyle = backgroundColor;
+    ctx.fill();
+    ctx.closePath();
+
     for (let c = 0; c < gridWidth; c++) {
         for (let r = 0; r < gridHeight; r++) {
-            ctx.beginPath();
-            ctx.roundRect(blocks[c][r].x, blocks[c][r].y, blockSize, blockSize, 5);
 
-            ctx.fillStyle = blocks[c][r].color;
-
-            ctx.fill();
-            ctx.closePath();
+            drawBlock(blocks[c][r].x, blocks[c][r].y, blockSize, blockSize, 5, blocks[c][r].color);
         }
     }
 }
