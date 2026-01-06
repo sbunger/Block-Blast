@@ -5,8 +5,8 @@ const ctx = canvas.getContext("2d");
 const canvasX = canvas.width;
 const canvasY = canvas.height;
 
-let gridWidth = 7;
-let gridHeight = 5;
+let gridWidth = 4;
+let gridHeight = 4;
 
 const defaultColor = "#ffffff";
 const backgroundColor = "#f1f1ee";
@@ -18,7 +18,7 @@ const blockSize = 40;
 
 const gridPadding = 20;
 
-const blockSpacing = 150;
+const blockSpacing = 190;
 const blockY = 100;
 
 const blocks = [];
@@ -30,17 +30,20 @@ let offsetY = 0;
 
 let score = 0;
 
-let x = canvas.width / 2;
-let y = canvas.height - 30;
+let inPlay = true;
 
 // define all possible blocks
 const shapes = [
-    [[1]],
 
     [[1, 1]],
 
     [
         [1, 0],
+        [1, 1]
+    ],
+
+    [
+        [1, ],
         [1, 1]
     ],
 
@@ -63,9 +66,16 @@ const shapes = [
     ],
 
     [
-        [1, 1, 1]
+        [1, 1, 1, 1]
+    ],
+
+    [
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]
     ]
 ]
+
 
 
 
@@ -149,7 +159,7 @@ function clearRow(r) {
 
 function clearColumn(c) {
     for (let i = 0; i < c.length; i++) {
-        for (let r = 0; r < gridWidth; r++){
+        for (let r = 0; r < gridHeight; r++){
             blocks[c[i]][r].placed = false;
             blocks[c[i]][r].color = defaultColor;
         }
@@ -191,8 +201,47 @@ function checkRows() {
     }
 
     updateScore(selectedRows, selectedCols);
-    clearRow(selectedRows);
+
     clearColumn(selectedCols);
+    clearRow(selectedRows);
+}
+
+function canPlace(block, startCol, startRow) {
+    for (let r = 0; r < block.shape.length; r++) {
+        for (let c = 0; c < block.shape[r].length; c++) {
+            if (!block.shape[r][c]) continue;
+
+            const gridCol = startCol + c;
+            const gridRow = startRow + r;
+
+            if (gridCol >= gridWidth || gridRow >= gridHeight) return false;
+
+            if (blocks[gridCol][gridRow].placed) return false;
+        }
+    }
+    return true;
+}
+
+
+
+function gameCheck() {
+    let spotOpen = 0;
+
+    for (b = 0; b < availableBlocks.length; b++) {
+
+        for (r = 0; r < gridHeight; r++) {
+            for (c = 0; c < gridWidth; c++) {
+                if (canPlace(availableBlocks[b], c, r)) {
+                    spotOpen += 1;
+                }
+            }
+        }
+
+    }
+
+    if (spotOpen == 0) {
+        inPlay = false;
+    }
 }
 
 
@@ -207,7 +256,7 @@ function drawBlock(x, y, h, w, r, color) {
         ctx.shadowColor = color;
         ctx.shadowBlur = 8;
     }
-    
+
     ctx.beginPath();
     ctx.roundRect(x, y, h, w, r);
     ctx.fillStyle = color;
@@ -243,6 +292,10 @@ function drawAvailableBlocks() {
 
 function drawScore() {
     ctx.font = "bold italic 25px Arial";
+
+    ctx.textAlign = "left"; 
+    ctx.textBaseline = "alphabetic";
+
     ctx.fillStyle = "#3d405b";
     ctx.fillText(`Score: ${score}`, 40, 60);
 }
@@ -264,16 +317,44 @@ function drawGrid() {
     }
 }
 
+function drawGameOver() {
+
+    const overWidth = 200;
+    const overHeight = 35;
+
+    ctx.beginPath();
+    ctx.roundRect((canvasX - overWidth) / 2 , (canvasY - overHeight) / 2, overWidth, overHeight, r);
+    ctx.fillStyle = backgroundColor;
+    ctx.fill();
+    ctx.closePath();
+
+    ctx.font = "bold italic 25px Arial";
+    ctx.fillStyle = "#3d405b";
+
+    ctx.textBaseline = "middle"; 
+    ctx.textAlign = "center"; 
+    ctx.fillText(`Game Over!`, canvasX / 2, canvasY / 2);
+}
+
+
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    createAvailableBlocks()
+    if (inPlay) {
+        checkRows();
+        createAvailableBlocks();
+    }
 
     drawGrid();
     drawAvailableBlocks();
     drawScore();
 
-    checkRows();
+    gameCheck();
+
+    if (!inPlay) {
+        drawGameOver();
+    }
 }
 
 setInterval(draw, 10);
