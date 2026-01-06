@@ -207,6 +207,7 @@ function updateClears() {
 
             if (!block.clearing) continue;
 
+            block.placed = false;
             block.gridTimer -= 1;
 
             if (block.gridTimer <= 0) {
@@ -298,10 +299,11 @@ function gameCheck() {
     let spotOpen = 0;
 
     for (let b = 0; b < availableBlocks.length; b++) {
-
-        for (r = 0; r < gridHeight; r++) {
-            for (c = 0; c < gridWidth; c++) {
-                if (canPlace(availableBlocks[b], c, r)) {
+        const block = availableBlocks[b];
+        if (!block.active) continue;
+        for (let r = 0; r <= gridHeight - block.shape.length; r++) {
+            for (let c = 0; c <= gridWidth - block.shape[0].length; c++) {
+                if (canPlace(block, c, r)) {
                     spotOpen += 1;
                 }
             }
@@ -434,13 +436,11 @@ function drawGameOver() {
 }
 
 
+createAvailableBlocks();
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (inPlay) {
-        createAvailableBlocks();
-    }
     updateClears();
 
     drawGrid();
@@ -547,6 +547,8 @@ function stopDrag() {
     activeBlock = null;
 
     checkRows();
+
+    createAvailableBlocks();
 
     console.log("success");
 }
