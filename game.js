@@ -21,8 +21,8 @@ const gridPadding = 20;
 const blockSpacing = 190;
 const blockY = 90;
 
-const blocks = [];
-const availableBlocks = [];
+let blocks = [];
+let availableBlocks = [];
 
 let activeBlock = null;
 let offsetX = 0;
@@ -33,7 +33,7 @@ let combo = 0;
 
 const clearTime = 8;
 
-let inPlay = true;
+let inPlay = "start";
 
 // define all possible blocks
 const shapes = [
@@ -63,6 +63,11 @@ const shapes = [
     [
         [0, 1],
         [1, 0]
+    ],
+
+    [
+        [1, 0],
+        [0, 1]
     ],
 
     [
@@ -115,8 +120,15 @@ const shapes = [
         [1, 0, 0],
         [0, 1, 0],
         [0, 0, 1]
+    ],
+
+    [
+        [1, 1, 1],
+        [0, 0, 1],
+        [0, 0, 1]
     ]
 ]
+
 
 
 
@@ -312,7 +324,7 @@ function gameCheck() {
     }
 
     if (spotOpen == 0) {
-        inPlay = false;
+        inPlay = "gameOver";
     }
 }
 
@@ -419,11 +431,20 @@ function drawGameOver() {
     ctx.fillStyle = backgroundColor;
     ctx.fill();
 
-    ctx.shadowColor = "transparent";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.roundRect((canvasX - overWidth) / 2 , canvasY - 120 - overHeight / 2, overWidth, overHeight, 5);
+    ctx.fillStyle = backgroundColor;
+    ctx.fill();
 
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#ffffff";
     ctx.stroke();
+
+    ctx.shadowColor = "transparent";
     
     ctx.closePath();
 
@@ -433,7 +454,55 @@ function drawGameOver() {
     ctx.textBaseline = "middle"; 
     ctx.textAlign = "center"; 
     ctx.fillText(`Game Over!`, canvasX / 2, 120);
+
+    ctx.fillText(`Click to reset`, canvasX / 2, canvasY - 120);
 }
+
+
+function drawStart() {
+    for (let c = 0; c < canvasX / gridWidth; c++) {
+        for (let r = 0; r < canvasY / gridWidth; r++) {
+            let tempColor = null;
+
+            if (Math.floor(Math.random() * 2)) {
+                tempColor = getRandomColor();
+            } else {
+                tempColor = defaultColor;
+            }
+
+
+            drawBlock(- blockPadding + c * (blockSize + blockPadding), - blockPadding + r * (blockSize + blockPadding), blockSize, blockSize, 5, tempColor);
+        }
+    }
+
+    const overWidth = 220;
+    const overHeight = 55;
+
+    ctx.shadowColor = backgroundColor;
+    ctx.shadowBlur = 12;
+
+    ctx.beginPath();
+    ctx.roundRect((canvasX - overWidth) / 2 , (canvasY - overHeight) / 2, overWidth, overHeight, 6);
+    ctx.fillStyle = backgroundColor;
+    ctx.fill();
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+
+    ctx.shadowColor = "transparent";
+
+    ctx.font = "bold 25px Arial";
+
+    ctx.textAlign = "center"; 
+    ctx.textBaseline = "middle";
+
+    ctx.fillStyle = "#3d405b";
+    ctx.fillText("Click to begin!", canvasX / 2, canvasY / 2);    
+}
+
+
+
 
 
 createAvailableBlocks();
@@ -441,20 +510,29 @@ createAvailableBlocks();
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    updateClears();
+    if (inPlay == "start") {
+        drawStart();
+    }
 
-    drawGrid();
-    drawAvailableBlocks();
-    drawScore();
+    if (inPlay == "game") {
+        updateClears();
 
-    gameCheck();
+        drawGrid();
+        drawAvailableBlocks();
+        drawScore();
 
-    if (!inPlay) {
+        gameCheck();
+    }
+
+    if (inPlay == "gameOver") {
+        drawGrid();
+        drawScore();
+
         drawGameOver();
     }
 }
 
-setInterval(draw, 16);
+gameInterval = setInterval(draw, 500);
 
 
 
@@ -510,6 +588,18 @@ function getPos(event) {
 }
 
 
+function newGame() {
+    score = 0;
+    availableBlocks = [];
+    blocks = [];
+
+    generateBlocks();
+    createAvailableBlocks();
+
+    inPlay = "game";
+}
+
+
 
 
 
@@ -556,6 +646,17 @@ function stopDrag() {
 canvas.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     const pos = getPos(event);
+
+    if (inPlay === "start") {
+        gameInterval = setInterval(draw, 10);
+        inPlay = "game";
+        return;
+    }
+
+    if (inPlay === "gameOver") {
+        newGame();
+        return;
+    }
     
     for (let b = 0; b < totalBlocks; b++) {
         if (blockCollision(pos.mouseX, pos.mouseY, availableBlocks[b])) {

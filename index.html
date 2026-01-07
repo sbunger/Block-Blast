@@ -10,13 +10,16 @@
                 margin: 0;
             }
 
+            #container {
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
             canvas {
                 background: #ffffff;
-                display: block;
-                margin: 100px auto;
-
                 border-radius: 5px;
-
                 outline: #f1f1ee solid 10px;
             }
 
@@ -28,7 +31,9 @@
     </head>
 
     <body>
-        <canvas id="gameCanvas" width="600" height="600"></canvas>
+        <div id="container">
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
+        </div>
 
         <script src="game.js"></script>
     </body>
