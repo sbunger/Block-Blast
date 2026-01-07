@@ -527,6 +527,8 @@ function draw() {
     }
 
     if (inPlay == "gameOver") {
+        updateClears();
+
         drawGrid();
         drawScore();
         drawAvailableBlocks();
