@@ -8,4 +8,4 @@ The game includes a start and game over screen, block dragging, row and column c
 This is a very simple game, all you do is drag the blocks on the screen! If you can place any blocks anywhere on screen, you lose! The more rows / columns you complete in a row, the higher your combo will increase, giving more points.
 
 ## Screenshots
-<img src="images/block1.gif" width = "30%"> <img src="images/block2.png" width = "30%">
+<img src="images/block1.gif" width = "40%"> <img src="images/block2.png" width = "40%">
