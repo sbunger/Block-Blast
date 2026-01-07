@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Block Blast</title>
+
+        <style>
+            * {
+                padding: 0;
+                margin: 0;
+            }
+
+            #container {
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            canvas {
+                background: #ffffff;
+                border-radius: 5px;
+                outline: #f1f1ee solid 10px;
+            }
+
+            input {
+                display: block;
+                margin: auto;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="container">
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
+        </div>
+
+        <script src="game.js"></script>
+    </body>
+</html>
